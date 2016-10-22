@@ -1,5 +1,6 @@
 import ceylon.json {
-    JSONObject=Object,
+    JsonObject,
+    JsonArray,
     Value,
     parse
 }
@@ -25,7 +26,8 @@ shared JsonLoad<ResultType> buildJsonLoad<ResultType = Anything>() {
 }
 
 shared alias JsonSource => String;
-shared alias JsonLoad<ResultType = Anything> => ResultType(Class<ResultType>, JsonSource);
+shared alias JsonLoadResult<ResultType> => ResultType|{ResultType*};
+shared alias JsonLoad<ResultType = Anything> => JsonLoadResult<ResultType>(Class<ResultType>, JsonSource);
 
 shared class JsonLoadException(String description, Throwable? cause = null) extends Exception(description, cause) {}
 
@@ -37,20 +39,27 @@ alias ParameterZip => [FunctionOrValueDeclaration, Type<Anything>];
 
 class JsonLoader<ResultType = Anything>() {
 
-    shared ResultType load(Class<ResultType> cls, JsonSource json) {
+    shared JsonLoadResult<ResultType> load(Class<ResultType> cls, JsonSource json) {
         Value parsed;
         try {
             parsed = parse(json);
         } catch (Exception e) {
             throw JsonLoadException("Error parsing JSON: " + jsonInfo(json), e);
         }
-        if (is JSONObject parsed) {
+        if (is JsonObject parsed) {
             return loadJsonObject<ResultType>(cls, parsed);
+        }
+        if (is JsonArray parsed) {
+            return loadJsonArray<ResultType>(cls, parsed);
         }
         throw JsonLoadException("JSON is not object: " + jsonInfo(json));
     }
 
-    ResultType loadJsonObject<ResultType>(Class<ResultType> cls, JSONObject jsonObject) {
+    {ResultType*} loadJsonArray<ResultType>(Class<ResultType> cls, JsonArray jsonArray) {
+        return { for (value v in jsonArray) if (is JsonObject v) loadJsonObject(cls, v)};
+    }
+
+    ResultType loadJsonObject<ResultType>(Class<ResultType> cls, JsonObject jsonObject) {
         try {
             if (exists ctr = cls.defaultConstructor) {
                 value parameters = zipParameters(ctr, jsonObject.keys);

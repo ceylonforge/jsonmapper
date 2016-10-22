@@ -1,6 +1,7 @@
 import ceylon.json {
     JsonArray,
-    JsonObject
+    JsonObject,
+    Value
 }
 import ceylon.language.meta.model {
     Class
@@ -36,7 +37,6 @@ class LoadBasicTest() {
         checkLoadFail_NotJsonObject("12345");
         checkLoadFail_NotJsonObject("67.89");
         checkLoadFail_NotJsonObject("null");
-        checkLoadFail_NotJsonObject("""[{"aaa":123}]"""); // don't support array in top level (for now) - but TODO ??? what about to support that ?
     }
 
     void checkLoadFail_NotJsonObject(String json) {
@@ -115,9 +115,22 @@ class LoadBasicTest() {
     test
     shared void testConstructors() {
         checkLoad(`DummyDefaultCtr`, """{"aaa":123}""", "DummyDefaultCtr{aaa=123}");
-
         checkLoadFailed(`DummyWithoutDefaultCtr`, """{"aaa":123}""");
     }
+
+    test
+    shared void testTopLevelArrayOfObjects() {
+        checkLoad(`DummyValue`, """[]""", "{}");
+        checkLoad(`DummyValue`, """[{"val":123}, {"val":"DUMMY-VALUE"}]""",
+            "{ DummyValue{val=123}, DummyValue{val=DUMMY-VALUE} }");
+
+        // silently skip non-objects by default
+        checkLoad(`DummyValue`, """[{"val":123}, 777, {"val":"DUMMY-VALUE"}, ["NESTED-ARRAY"]]""",
+            "{ DummyValue{val=123}, DummyValue{val=DUMMY-VALUE} }");
+        checkLoad(`DummyValue`, """[123, true, "DUMMY-STRING"]""", "{}");
+    }
+
+    // todo !!! #3 check nullable object field error while coverted from primitive
 
     //
     //  Implementation details
@@ -154,6 +167,9 @@ class LoadBasicTest() {
 
 }
 
+class DummyValue(Value val) {
+    shared actual String string => classname(this) + "{val=``tostr(val)``}";
+}
 class DummyPrimitives(String str, Integer int, Boolean bool, Float float) {
     shared actual String string => classname(this) + "{str=``str``, int=``int``, bool=``bool``, float=``float``}";
 }
