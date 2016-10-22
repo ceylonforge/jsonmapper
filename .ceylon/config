@@ -1,0 +1,5 @@
+
+[defaults]
+offline=false
+flatclasspath=false
+autoexportmavendependencies=false
