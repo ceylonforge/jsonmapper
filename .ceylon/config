@@ -1,0 +1,9 @@
+
+[defaults]
+offline=false
+flatclasspath=false
+autoexportmavendependencies=false
+
+[compiler]
+source=./source
+source=./test-source
