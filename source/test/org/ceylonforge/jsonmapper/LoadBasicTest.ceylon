@@ -63,7 +63,7 @@ class LoadBasicTest() {
 
     test
     shared void testPrimitives_Failed() {
-        checkLoadFailed(`DummyString`, """{"int":false}""");
+        checkLoadFailed(`DummyString`, """{"str":false}""");
         checkLoadFailed(`DummyInteger`, """{"int":123.45}""");
         checkLoadFailed(`DummyFloat`, """{"float":true}""");
         checkLoadFailed(`DummyBoolean`, """{"bool":123}""");
@@ -72,6 +72,25 @@ class LoadBasicTest() {
         checkLoadFailed(`DummyInteger`, """{"int":null}""");
         checkLoadFailed(`DummyFloat`, """{"float":null}""");
         checkLoadFailed(`DummyBoolean`, """{"bool":null}""");
+
+        checkLoadFailed(`DummyString`, """{"str":{}}""", "object to primitive");
+        checkLoadFailed(`DummyString`, """{str":[]}""", "array to primitive");
+    }
+
+    test
+    shared void testPrimitives_UnionTypeParameters() {
+        checkLoad(`DummyUnion`, """{"aaa": 123, "bbb":true}""",
+            "DummyUnion{aaa=123, bbb=true}");
+        checkLoad(`DummyUnion`, """{"aaa": "DUMMY-VALUE", "bbb":123.45}""",
+            "DummyUnion{aaa=DUMMY-VALUE, bbb=123.45}");
+    }
+
+    test
+    shared void testGenerics() {
+        checkLoad(`DummyGeneric<String>`, """{"foo":"DUMMY-VALUE"}""",
+            "DummyGeneric{foo=DUMMY-VALUE}");
+        checkLoad(`DummyGeneric<Integer>`, """{"foo":123}""",
+            "DummyGeneric{foo=123}");
     }
 
     test
@@ -90,11 +109,11 @@ class LoadBasicTest() {
         checkLoad(`Dummy2Default`, """{"aaa":111, "extraField":222}""", "Dummy2Default{aaa=111, bbb=12345}");
 
         // TODO uncomment/implement in some next release
-//        cfg = JsonLoadConfiguration {
-//            skipExtraFields = false;
-//        };
-//        checkLoadFailed(`DummyString`, """{"str":"DUMMY-VALUE", "extraField":"DUMMY-BAR"}""");
-//        testPrimitives(); // check order here
+        //        cfg = JsonLoadConfiguration {
+        //            skipExtraFields = false;
+        //        };
+        //        checkLoadFailed(`DummyString`, """{"str":"DUMMY-VALUE", "extraField":"DUMMY-BAR"}""");
+        //        testPrimitives(); // check order here
     }
 
     test
@@ -105,11 +124,20 @@ class LoadBasicTest() {
     }
 
     test
-    shared void testUnionTypeParameters() {
-        checkLoad(`DummyUnion`, """{"aaa": 123, "bbb":true}""",
-            "DummyUnion{aaa=123, bbb=true}");
-        checkLoad(`DummyUnion`, """{"aaa": "DUMMY-VALUE", "bbb":123.45}""",
-            "DummyUnion{aaa=DUMMY-VALUE, bbb=123.45}");
+    shared void testMissingFieldsFailed_ForOptionalProperty() {
+        checkLoadFailed(`DummyValueOptional`, """{}""");
+    }
+
+    test
+    shared void testDefaultProperty() {
+        checkLoad(`Dummy2Default`, """{"aaa":111, "bbb":222}""",
+            "Dummy2Default{aaa=111, bbb=222}");
+        checkLoad(`Dummy2Default`, """{"aaa":111}""",
+            "Dummy2Default{aaa=111, bbb=12345}");
+        checkLoad(`DummyValueDefault`, """{}""",
+            "DummyValueDefault{val=DEFAULT-VALUE}");
+        checkLoad(`DummyValueDefaultOptional`, """{}""",
+            "DummyValueDefaultOptional{val=DEFAULT-VALUE}");
     }
 
     test
@@ -130,7 +158,44 @@ class LoadBasicTest() {
         checkLoad(`DummyValue`, """[123, true, "DUMMY-STRING"]""", "{}");
     }
 
-    // todo !!! #3 check nullable object field error while coverted from primitive
+    test
+    shared void testPrimitiveToObjectConversionFailed() {
+        checkLoadFailed(`DummyObjectOptional`, """{"dummy":123}""");
+    }
+
+    test
+    shared void testNestedObject() {
+        checkLoad(`DummyObject`, """{"dummy":{"val":123}}""",
+            "DummyObject{dummy=DummyValue{val=123}}");
+        checkLoad(`DummyObjectOptional`, """{"dummy":{"val":123}}""",
+            "DummyObjectOptional{dummy=DummyValue{val=123}}");
+        checkLoad(`DummyGeneric<DummyValue>`, """{"foo":{"val":123}}""",
+            "DummyGeneric{foo=DummyValue{val=123}}");
+
+        checkLoad(`DummyObjectOptional`, """{"dummy":null}""",
+            "DummyObjectOptional{dummy=<null>}");
+
+        checkLoad(`DummyObjectObject`, """{"obj":{"dummy":{"val":123}}}""",
+            "DummyObjectObject{obj=DummyObject{dummy=DummyValue{val=123}}}", "nested nested object");
+
+        checkLoad(`DummyGeneric<Value|DummyObject>`, """{"foo":{"dummy":{"val":123}}}""",
+            """DummyGeneric{foo={"dummy":{"val":123}}}""", "Union type parameter with Value is supported and Value is used");
+        checkLoad(`DummyGeneric<DummyObject|Value>`, """{"foo":{"dummy":{"val":123}}}""",
+            """DummyGeneric{foo={"dummy":{"val":123}}}""", "Union type parameter with Value is supported and Value is used");
+        checkLoad(`DummyGeneric<DummyObject|Integer>`, """{"foo":123}""",
+            """DummyGeneric{foo=123}""", "Union type parameter with primitive is supported and primitive is used");
+    }
+
+    test
+    shared void testNestedObject_ConversionFailed() {
+        checkLoadFailed(`DummyGeneric<DummyObjectOptional|DummyObject>`, """{"foo":{"dummy":{"val":123}}}""", "Union objects paremeter is not supported");
+        checkLoadFailed(`DummyGeneric<<DummyObjectOptional|DummyObject>?>`, """{"foo":{"dummy":{"val":123}}}""", "Union objects parameter is not supported (optional)");
+        checkLoadFailed(`DummyGeneric<Null|DummyObjectOptional|DummyObject>`, """{"foo":{"dummy":{"val":123}}}""", "Union objects parameter is not supported (with Null)");
+
+        checkLoadFailed(`DummyGeneric<DummyInterface>`, """{"foo":{}}""", "Interface parameter is not supported");
+
+        checkLoadFailed(`DummyGeneric<DummyObject & DummyInterface>`, """{"foo":{"dummy":{"val":123}}}""", "Intersection type paremeter is not supported");
+    }
 
     //
     //  Implementation details
@@ -144,7 +209,10 @@ class LoadBasicTest() {
 
     void checkLoadFailed(Class<> cls, String json, String? msg = null) {
         try {
-            buildJsonLoad<>()(cls, json);
+            value loaded = buildJsonLoad<>()(cls, json);
+            fail("\n***** THERE IS NO EXCEPTION``if (exists msg) then ": " + msg  else ""`` *****\n" +
+                 ("JSON '``json``'\n\t\t-> ``tostr(loaded)``" +
+                 "\n*********************************\n"));
         } catch (JsonLoadException e) {
             print("*** Info about exception:\n``e``");
 
@@ -160,14 +228,28 @@ class LoadBasicTest() {
                 print(tabs + prefix + cause.string + (if (ex exists) then  "" else "}"));
                 prefix = "<- ";
             }
-            return;
         }
-        fail("There is no exception: " + (msg?.string else "JSON '``json``' to ``cls.string``"));
     }
 
 }
 
+//
+//  Basic and primitives
+//
+
+class DummyGeneric<T>(T foo) {
+    shared actual String string => classname(this) + "{foo=``tostr(foo)``}";
+}
 class DummyValue(Value val) {
+    shared actual String string => classname(this) + "{val=``tostr(val)``}";
+}
+class DummyValueOptional(Value? val) {
+    shared actual String string => classname(this) + "{val=``tostr(val)``}";
+}
+class DummyValueDefault(Value val = "DEFAULT-VALUE") {
+    shared actual String string => classname(this) + "{val=``tostr(val)``}";
+}
+class DummyValueDefaultOptional(Value? val = "DEFAULT-VALUE") {
     shared actual String string => classname(this) + "{val=``tostr(val)``}";
 }
 class DummyPrimitives(String str, Integer int, Boolean bool, Float float) {
@@ -217,3 +299,18 @@ class DummyWithoutDefaultCtr {
     }
     shared actual String string => classname(this) + "{aaa=``aaa``}";
 }
+
+//
+//  Objects
+//
+
+class DummyObject(DummyValue dummy) {
+    shared actual String string => classname(this) + "{dummy=``dummy``}";
+}
+class DummyObjectObject(DummyObject obj) {
+    shared actual String string => classname(this) + "{obj=``obj``}";
+}
+class DummyObjectOptional(DummyValue? dummy) {
+    shared actual String string => classname(this) + "{dummy=``tostr(dummy)``}";
+}
+interface DummyInterface {}

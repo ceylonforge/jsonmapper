@@ -13,7 +13,8 @@ import ceylon.language.meta.declaration {
 import ceylon.language.meta.model {
     Class,
     Type,
-    CallableConstructor
+    CallableConstructor,
+    UnionType
 }
 
 //
@@ -63,12 +64,11 @@ class JsonLoader<ResultType = Anything>() {
         try {
             if (exists ctr = cls.defaultConstructor) {
                 value parameters = zipParameters(ctr, jsonObject.keys);
-                value names = { for (pz in parameters) pz[0].name };
-                value params = {
-                    for (p in zipPairs(names, ctr.parameterTypes))
-                    let (name = p[0])
-                    name -> resolveValue(jsonObject[name], p[1])
-                };
+                value params = [
+                    for ([pdecl, ptype] in parameters)
+                    let (name = pdecl.name)
+                    name -> resolveValue(jsonObject[name], ptype)
+                ]; // use sequential here for single evaluation
                 try {
                     return ctr.namedApply(params);
                 } catch (e) {
@@ -93,7 +93,31 @@ class JsonLoader<ResultType = Anything>() {
         if (targetType.typeOf(jsonValue)) {
             return jsonValue;
         }
-        return null;
+        if (is JsonObject jsonValue) {
+            if (is Class<> targetType) {
+                return loadJsonObject(targetType, jsonValue);
+            }
+            if (is UnionType<Target> targetType, exists targetClass = getClassIfOptional(targetType)) {
+                return loadJsonObject(targetClass, jsonValue);
+            }
+        }
+        throw JsonLoadException("Can not resolve value '``tostr(jsonValue)``' into type '``targetType``'");
+    }
+
+    "Return Target class targetType is 'Target?'. Else return null."
+    Class<Target>? getClassIfOptional<out Target>(UnionType<Target> targetType) {
+        variable Class<Target>? targetClass = null;
+        for (value caseType in targetType.caseTypes) {
+            if (caseType.exactly(`Null`)) {
+                // simply skip if Null
+            } else if (is Class<Target> caseType) {
+                if (targetClass exists) {
+                    return null;
+                }
+                targetClass = caseType;
+            }
+        }
+        return targetClass;
     }
 
     String jsonInfo(String json) {
@@ -107,9 +131,8 @@ class JsonLoader<ResultType = Anything>() {
     }
 }
 
-Boolean isOptional(Type<> ptype) {
-    return ptype.supertypeOf(`Null`);
-}
+Boolean isOptional(Type<> ptype) => ptype.supertypeOf(`Null`);
+String tostr(Anything val) => val?.string else "<null>";
 
 
 
