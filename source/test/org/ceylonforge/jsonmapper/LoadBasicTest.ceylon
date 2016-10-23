@@ -197,6 +197,12 @@ class LoadBasicTest() {
         checkLoadFailed(`DummyGeneric<DummyObject & DummyInterface>`, """{"foo":{"dummy":{"val":123}}}""", "Intersection type paremeter is not supported");
     }
 
+    test
+    shared void testNestedArray() {
+        checkLoad(`DummyArraySequential<Integer>`, """{"items":[11, 22, 33 , 44, 55]}""",
+            "DummyArraySequential{items=[11,22,33,44,55]}");
+    }
+
     //
     //  Implementation details
     //
@@ -314,3 +320,22 @@ class DummyObjectOptional(DummyValue? dummy) {
     shared actual String string => classname(this) + "{dummy=``tostr(dummy)``}";
 }
 interface DummyInterface {}
+
+//
+//  Arrays
+//
+
+class DummyArraySequential<T>(T[] items) {
+    shared actual String string => classname(this) + "{items=``items``}";
+}
+class DummyArraySequence<T>([T+] items) {
+    shared actual String string => classname(this) + "{items=``items``}";
+}
+class DummyArrayStreamPossiblyEmpty<T>({T*} items) {
+    shared actual String string => classname(this) + "{items=``items``}";
+}
+class DummyArrayStreamNonEmpty<T>({T+} items) {
+    shared actual String string => classname(this) + "{items=``items``}";
+}
+
+// TODO FEATURE load JsonObject as Map<String,Target>(implement as issue/branch for release 0.2)

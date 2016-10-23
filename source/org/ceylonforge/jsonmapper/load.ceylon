@@ -14,7 +14,9 @@ import ceylon.language.meta.model {
     Class,
     Type,
     CallableConstructor,
-    UnionType
+    UnionType,
+    ClassOrInterface,
+    InterfaceModel
 }
 
 //
@@ -99,6 +101,19 @@ class JsonLoader<ResultType = Anything>() {
             }
             if (is UnionType<Target> targetType, exists targetClass = getClassIfOptional(targetType)) {
                 return loadJsonObject(targetClass, jsonValue);
+            }
+        }
+        if (is JsonArray jsonValue) {
+            if (is ClassOrInterface<Sequential<>> targetType) {
+                print("*** SATISFIED: " + targetType.satisfiedTypes.string);
+                for (t in targetType.satisfiedTypes) {
+                    print("*** TYPE: " + t.string + ": " + (t is Type<Sequential<>>).string);
+                }
+                value seql = targetType.satisfiedTypes.find((InterfaceModel<Anything> elem) => elem is Type<Sequential<>>);
+                print("*** SEQL:" + tostr(seql)); // todo !!! remove
+                if (exists seql, exists itemType = seql.typeArgumentList[0]) {
+                    return [for (item in jsonValue) resolveValue(item, itemType)];
+                }
             }
         }
         throw JsonLoadException("Can not resolve value '``tostr(jsonValue)``' into type '``targetType``'");
