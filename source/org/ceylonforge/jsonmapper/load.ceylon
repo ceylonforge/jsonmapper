@@ -5,7 +5,8 @@ import ceylon.json {
     parse
 }
 import ceylon.language.meta {
-    classDeclaration
+    classDeclaration,
+    type
 }
 import ceylon.language.meta.declaration {
     FunctionOrValueDeclaration
@@ -15,8 +16,7 @@ import ceylon.language.meta.model {
     Type,
     CallableConstructor,
     UnionType,
-    ClassOrInterface,
-    InterfaceModel
+    ClassOrInterface
 }
 
 //
@@ -74,12 +74,13 @@ class JsonLoader<ResultType = Anything>() {
                 try {
                     return ctr.namedApply(params);
                 } catch (e) {
-                    throw JsonLoadException("Constructor '``ctr````ctr.parameterTypes``' failed with parameters '``params``'", e);
+                    throw JsonLoadException("Constructor '``ctr````ctr.parameterTypes``' failed with parameters '``params``' (type ``type(params)``)", e);
                 }
             } else {
                 throw JsonLoadException("Class ``cls`` has no default constructor");
             }
         } catch (e) {
+            // todo DEFFERED reconsider this message for generics (because there are no type parameters in declaration.name)
             throw JsonLoadException("Load (JSON -> ``cls.declaration.name``) failed:\n\tClass: ``cls.declaration.qualifiedName``\n\tReason: ``e.message``\n\tException:``classDeclaration(e).qualifiedName``", e);
         }
     }
@@ -104,19 +105,49 @@ class JsonLoader<ResultType = Anything>() {
             }
         }
         if (is JsonArray jsonValue) {
+            // for now this is unnecessary (tests passed without it)
+//            if (jsonValue.empty) {
+//                return [];
+//            }
             if (is ClassOrInterface<Sequential<>> targetType) {
-                print("*** SATISFIED: " + targetType.satisfiedTypes.string);
-                for (t in targetType.satisfiedTypes) {
-                    print("*** TYPE: " + t.string + ": " + (t is Type<Sequential<>>).string);
+                if (is ClassOrInterface<Sequential<Value>> targetType) {
+                    if (is ClassOrInterface<Sequential<String>> targetType) {
+                        return jsonValue.strings.sequence();
+                    }
+                    if (is ClassOrInterface<Sequential<Integer>> targetType) {
+                        return jsonValue.integers.sequence();
+                    }
+                    if (is ClassOrInterface<Sequential<Float>> targetType) {
+                        return jsonValue.floats.sequence();
+                    }
+                    if (is ClassOrInterface<Sequential<Boolean>> targetType) {
+                        return jsonValue.booleans.sequence();
+                    }
+                    if (is ClassOrInterface<Sequential<JsonArray>> targetType) {
+                        return jsonValue.arrays.sequence();
+                    }
+                    if (is ClassOrInterface<Sequential<JsonObject>> targetType) {
+                        return jsonValue.objects.sequence();
+                    }
+                    return jsonValue.sequence(); // We don't support Sequential<Null>
                 }
-                value seql = targetType.satisfiedTypes.find((InterfaceModel<Anything> elem) => elem is Type<Sequential<>>);
-                print("*** SEQL:" + tostr(seql)); // todo !!! remove
-                if (exists seql, exists itemType = seql.typeArgumentList[0]) {
-                    return [for (item in jsonValue) resolveValue(item, itemType)];
-                }
+
+                // todo !!! implement
+                value itemType = getSequentialItemType(targetType);
+//                value
+//                return jsonValue.collect(itemType(Value element) => nothing); // t
+                return [ for (item in jsonValue) resolveValue(item, itemType) ];
             }
+
         }
         throw JsonLoadException("Can not resolve value '``tostr(jsonValue)``' into type '``targetType``'");
+    }
+
+    Type<> getSequentialItemType(ClassOrInterface<Sequential<>> targetType) {
+        if (exists itemType = targetType.typeArgumentList.first) {
+            return itemType;
+        }
+        throw JsonLoadException("Could not obtain sequential item type for ``targetType``");
     }
 
     "Return Target class targetType is 'Target?'. Else return null."

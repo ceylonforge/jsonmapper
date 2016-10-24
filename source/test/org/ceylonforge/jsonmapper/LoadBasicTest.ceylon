@@ -198,10 +198,54 @@ class LoadBasicTest() {
     }
 
     test
-    shared void testNestedArray() {
-        checkLoad(`DummyArraySequential<Integer>`, """{"items":[11, 22, 33 , 44, 55]}""",
-            "DummyArraySequential{items=[11,22,33,44,55]}");
+    shared void testNestedArray_Sequential_JsonValues() {
+        checkLoad(`DummyArraySequential<Integer>`, """{"items":[11,22,33,44,55]}""",
+            "DummyArraySequential{items=[11, 22, 33, 44, 55]}");
+        checkLoad(`DummyArraySequential<Float>`, """{"items":[1.1,2.2,3.3,4.4,5.5]}""",
+            "DummyArraySequential{items=[1.1, 2.2, 3.3, 4.4, 5.5]}");
+        checkLoad(`DummyArraySequential<String>`, """{"items":["one", "two", "three"]}""",
+            """DummyArraySequential{items=[one, two, three]}""");
+        checkLoad(`DummyArraySequential<Boolean>`, """{"items":[true, true, false]}""",
+            """DummyArraySequential{items=[true, true, false]}""");
+        checkLoad(`DummyArraySequential<Boolean>`, """{"items":[true, true, false]}""",
+            """DummyArraySequential{items=[true, true, false]}""");
+
+        checkLoad(`DummyArraySequential<JsonArray>`, """{"items":[[111], [22, 22], [33, 33, 33]]}""",
+            """DummyArraySequential{items=[[111], [22,22], [33,33,33]]}""");
+        checkLoad(`DummyArraySequential<JsonObject>`, """{"items":[{"foo":123}, {"bar":456}]}""",
+            """DummyArraySequential{items=[{"foo":123}, {"bar":456}]}""");
+
+        checkLoad(`DummyArraySequential<Value>`, """{"items":[111, 22.33, "DUMMY-VALUE", true, [456], {"foo":789}]}""",
+            """DummyArraySequential{items=[111, 22.33, DUMMY-VALUE, true, [456], {"foo":789}]}""");
+
+        checkLoad(`DummyArraySequential<Integer>`, """{"items":[]}""",
+            "DummyArraySequential{items=[]}", "empty array");
+
+        // todo !!! test optional JsonValue
+        // todo !!! test union of JsonValues
+
+        checkLoadFailed(`DummyArraySequential<String>`, """{"items":["DUMMY", 123]}""", "mixed array");
     }
+
+    test
+    shared void testNestedArray_Sequential_Objects() {
+        checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[]}""",
+            "DummyArraySequential{items=[]}", "empty array");
+
+
+//        checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[{"int":111}, {"int":222}]}""",
+//            "DummyArraySequential{items=[DummyInteger{int=111}, DummyInteger{int=222}]}");
+
+//        checkLoad(`DummyArraySequential<DummyInteger?>`, """{"items":[{"int":111}, null, {"int":222}]}""",
+//            "DummyArraySequential{items=[DummyInteger{int=111}, <null>, DummyInteger{int=222}]}");
+
+
+        // todo !!! test nested nested sequential
+    }
+
+
+    // todo !!! test other seq and streams, ceylon Array and others collections (or may be collection schedule to extended)
+    // todo !!! test tuples (or may delay it to next releases)
 
     //
     //  Implementation details
