@@ -25,6 +25,10 @@ shared void runLoadBasicTests() {
     createTestRunner([`class LoadBasicTest`], [DefaultLoggingListener()]).run();
 }
 
+shared void runOneTest() {
+    createTestRunner([`function LoadBasicTest.testNestedArray_Sequential_Objects`], [DefaultLoggingListener()]).run();
+}
+
 class LoadBasicTest() {
 
     test
@@ -232,13 +236,11 @@ class LoadBasicTest() {
         checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[]}""",
             "DummyArraySequential{items=[]}", "empty array");
 
-
-//        checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[{"int":111}, {"int":222}]}""",
-//            "DummyArraySequential{items=[DummyInteger{int=111}, DummyInteger{int=222}]}");
+        checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[{"int":111}, {"int":222}]}""",
+            "DummyArraySequential{items=[DummyInteger{int=111}, DummyInteger{int=222}]}");
 
 //        checkLoad(`DummyArraySequential<DummyInteger?>`, """{"items":[{"int":111}, null, {"int":222}]}""",
 //            "DummyArraySequential{items=[DummyInteger{int=111}, <null>, DummyInteger{int=222}]}");
-
 
         // todo !!! test nested nested sequential
     }
@@ -246,6 +248,7 @@ class LoadBasicTest() {
 
     // todo !!! test other seq and streams, ceylon Array and others collections (or may be collection schedule to extended)
     // todo !!! test tuples (or may delay it to next releases)
+    // todo !!! support maps
 
     //
     //  Implementation details

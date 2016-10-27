@@ -92,6 +92,12 @@ class JsonLoader<ResultType = Anything>() {
         };
     }
 
+    Target resolveValueTyped<Target>(Value jsonValue, Type<Target> targetType) {
+        assert (is Target target = resolveValue(jsonValue, targetType));
+        return target;
+    }
+
+    // todo ??? remove Target from this method as it An
     Anything resolveValue<Target>(Value jsonValue, Type<Target> targetType) {
         if (targetType.typeOf(jsonValue)) {
             return jsonValue;
@@ -105,10 +111,9 @@ class JsonLoader<ResultType = Anything>() {
             }
         }
         if (is JsonArray jsonValue) {
-            // for now this is unnecessary (tests passed without it)
-//            if (jsonValue.empty) {
-//                return [];
-//            }
+            if (jsonValue.empty) {
+                return []; // todo !!! test other iterables
+            }
             if (is ClassOrInterface<Sequential<>> targetType) {
                 if (is ClassOrInterface<Sequential<Value>> targetType) {
                     if (is ClassOrInterface<Sequential<String>> targetType) {
@@ -131,16 +136,33 @@ class JsonLoader<ResultType = Anything>() {
                     }
                     return jsonValue.sequence(); // We don't support Sequential<Null>
                 }
-
-                // todo !!! implement
-                value itemType = getSequentialItemType(targetType);
-//                value
-//                return jsonValue.collect(itemType(Value element) => nothing); // t
-                return [ for (item in jsonValue) resolveValue(item, itemType) ];
+                return resolveSequential(jsonValue, targetType);
             }
-
         }
         throw JsonLoadException("Can not resolve value '``tostr(jsonValue)``' into type '``targetType``'");
+    }
+
+    Anything resolveSequential(JsonArray jsonValue, ClassOrInterface<Sequential<>> targetType) {
+        value itemType = getSequentialItemType(targetType);
+        value streamType = `class JsonArrayIterable`.memberClassApply<JsonLoader<ResultType>>(`JsonLoader<ResultType>`, itemType);
+        assert (exists streamConstructor = streamType.defaultConstructor);
+        assert (is Iterable<> stream = streamConstructor.bind(this).apply(jsonValue, itemType));
+        return stream.sequence();
+    }
+
+    class JsonArrayIterable<Element>(JsonArray jsonValue, Type<Element> itemType) satisfies Iterable<Element> {
+        shared actual Iterator<Element> iterator() => object satisfies Iterator<Element> {
+            Iterator<Value> jsonIterator = jsonValue.iterator();
+            shared actual Element|Finished next() {
+                switch (next = jsonIterator.next())
+                case (is Value) {
+                    return resolveValueTyped<Element>(next, itemType);
+                }
+                case (is Finished) {
+                    return next;
+                }
+            }
+        };
     }
 
     Type<> getSequentialItemType(ClassOrInterface<Sequential<>> targetType) {
@@ -150,7 +172,7 @@ class JsonLoader<ResultType = Anything>() {
         throw JsonLoadException("Could not obtain sequential item type for ``targetType``");
     }
 
-    "Return Target class targetType is 'Target?'. Else return null."
+    "Return Target class if targetType is 'Target?'. Else return null."
     Class<Target>? getClassIfOptional<out Target>(UnionType<Target> targetType) {
         variable Class<Target>? targetClass = null;
         for (value caseType in targetType.caseTypes) {
