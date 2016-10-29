@@ -27,6 +27,7 @@ shared void runLoadBasicTests() {
 
 shared void runOneTest() {
     createTestRunner([`function LoadBasicTest.testNestedArray_Sequential_Objects`], [DefaultLoggingListener()]).run();
+//    createTestRunner([`function LoadBasicTest.testNestedArray_Sequential_JsonValues`], [DefaultLoggingListener()]).run();
 }
 
 class LoadBasicTest() {
@@ -211,22 +212,21 @@ class LoadBasicTest() {
             """DummyArraySequential{items=[one, two, three]}""");
         checkLoad(`DummyArraySequential<Boolean>`, """{"items":[true, true, false]}""",
             """DummyArraySequential{items=[true, true, false]}""");
-        checkLoad(`DummyArraySequential<Boolean>`, """{"items":[true, true, false]}""",
-            """DummyArraySequential{items=[true, true, false]}""");
 
         checkLoad(`DummyArraySequential<JsonArray>`, """{"items":[[111], [22, 22], [33, 33, 33]]}""",
             """DummyArraySequential{items=[[111], [22,22], [33,33,33]]}""");
         checkLoad(`DummyArraySequential<JsonObject>`, """{"items":[{"foo":123}, {"bar":456}]}""",
             """DummyArraySequential{items=[{"foo":123}, {"bar":456}]}""");
 
-        checkLoad(`DummyArraySequential<Value>`, """{"items":[111, 22.33, "DUMMY-VALUE", true, [456], {"foo":789}]}""",
-            """DummyArraySequential{items=[111, 22.33, DUMMY-VALUE, true, [456], {"foo":789}]}""");
+        checkLoad(`DummyArraySequential<Value>`, """{"items":[111, 22.33, "DUMMY-VALUE", true, [456], {"foo":789}, null]}""",
+            """DummyArraySequential{items=[111, 22.33, DUMMY-VALUE, true, [456], {"foo":789}, <null>]}""", "array of ceylon.json::Value");
 
         checkLoad(`DummyArraySequential<Integer>`, """{"items":[]}""",
             "DummyArraySequential{items=[]}", "empty array");
-
-        // todo !!! test optional JsonValue
-        // todo !!! test union of JsonValues
+        checkLoad(`DummyArraySequential<Integer?>`, """{"items":[123, null]}""",
+            "DummyArraySequential{items=[123, <null>]}", "array of optional values");
+        checkLoad(`DummyArraySequential<Integer|String>`, """{"items":[123, "DUMMY"]}""",
+            "DummyArraySequential{items=[123, DUMMY]}", "array of union");
 
         checkLoadFailed(`DummyArraySequential<String>`, """{"items":["DUMMY", 123]}""", "mixed array");
     }
@@ -239,12 +239,14 @@ class LoadBasicTest() {
         checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[{"int":111}, {"int":222}]}""",
             "DummyArraySequential{items=[DummyInteger{int=111}, DummyInteger{int=222}]}");
 
-//        checkLoad(`DummyArraySequential<DummyInteger?>`, """{"items":[{"int":111}, null, {"int":222}]}""",
-//            "DummyArraySequential{items=[DummyInteger{int=111}, <null>, DummyInteger{int=222}]}");
+        checkLoad(`DummyArraySequential<DummyInteger?>`, """{"items":[{"int":111}, null, {"int":222}]}""",
+            "DummyArraySequential{items=[DummyInteger{int=111}, <null>, DummyInteger{int=222}]}", "optional values");
 
-        // todo !!! test nested nested sequential
+        checkLoad(`DummyArraySequential<DummyArraySequential<DummyInteger>>`, """{"items":[{"items":[{"int":111}]}, {"items":[{"int":222}]}]}""",
+            "DummyArraySequential{items=[DummyArraySequential{items=[DummyInteger{int=111}]}, DummyArraySequential{items=[DummyInteger{int=222}]}]}", "nested nested sequential");
+
+        checkLoadFailed(`DummyArraySequential<DummyInteger|DummyString>`, """{"items":[{"int":123123}, {"str":"DUMMY"}]}""", "sequential of general union is not supported for now"); // TODO DEFFERED consider support union by signature (or with some custom provided resolver)
     }
-
 
     // todo !!! test other seq and streams, ceylon Array and others collections (or may be collection schedule to extended)
     // todo !!! test tuples (or may delay it to next releases)
@@ -254,135 +256,4 @@ class LoadBasicTest() {
     //  Implementation details
     //
 
-    void checkLoad(Class<> cls, String json, String expected, String? msg = null) {
-        value obj = buildJsonLoad<>()(cls, json);
-        assert(is Object obj);
-        assertEquals(obj.string, expected, msg);
-    }
-
-    void checkLoadFailed(Class<> cls, String json, String? msg = null) {
-        try {
-            value loaded = buildJsonLoad<>()(cls, json);
-            fail("\n***** THERE IS NO EXCEPTION``if (exists msg) then ": " + msg  else ""`` *****\n" +
-                 ("JSON '``json``'\n\t\t-> ``tostr(loaded)``" +
-                 "\n*********************************\n"));
-        } catch (JsonLoadException e) {
-            print("*** Info about exception:\n``e``");
-
-            // todo maybe move CauseStack into JsonLoad-function - and extract JsonExceptionInfo into separate class (and setup error verbosing in config)
-            // todo DEFFERED and add info about jsonpath
-
-            variable Throwable? ex = e.cause;
-            variable String tabs = "";
-            variable String prefix = "CausesStack{";
-            while (exists cause = ex) {
-                ex = cause.cause;
-                tabs += "\t\t";
-                print(tabs + prefix + cause.string + (if (ex exists) then  "" else "}"));
-                prefix = "<- ";
-            }
-        }
-    }
-
 }
-
-//
-//  Basic and primitives
-//
-
-class DummyGeneric<T>(T foo) {
-    shared actual String string => classname(this) + "{foo=``tostr(foo)``}";
-}
-class DummyValue(Value val) {
-    shared actual String string => classname(this) + "{val=``tostr(val)``}";
-}
-class DummyValueOptional(Value? val) {
-    shared actual String string => classname(this) + "{val=``tostr(val)``}";
-}
-class DummyValueDefault(Value val = "DEFAULT-VALUE") {
-    shared actual String string => classname(this) + "{val=``tostr(val)``}";
-}
-class DummyValueDefaultOptional(Value? val = "DEFAULT-VALUE") {
-    shared actual String string => classname(this) + "{val=``tostr(val)``}";
-}
-class DummyPrimitives(String str, Integer int, Boolean bool, Float float) {
-    shared actual String string => classname(this) + "{str=``str``, int=``int``, bool=``bool``, float=``float``}";
-}
-class DummyPrimitivesOptional(String? str, Integer? int, Boolean? bool, Float? float) {
-    shared actual String string => classname(this) + "{str=``tostr(str)``, int=``tostr(int)``, bool=``tostr(bool)``, float=``tostr(float)``}";
-}
-class DummyString(String str) {
-    shared actual String string => classname(this) + "{str=``str``}";
-}
-class DummyInteger(Integer int) {
-    shared actual String string => classname(this) + "{int=``int``}";
-}
-class DummyFloat(Float float) {
-    shared actual String string => classname(this) + "{float=``float``}";
-}
-class DummyBoolean(Boolean bool) {
-    shared actual String string => classname(this) + "{bool=``bool``}";
-}
-class DummyJsonArray(JsonArray jsonArray) {
-    shared actual String string => classname(this) + "{jsonArray=``jsonArray``}";
-}
-class DummyJsonObject(JsonObject jsonObject) {
-    shared actual String string => classname(this) + "{jsonObject=``jsonObject``}";
-}
-class Dummy2Fields(Integer aaa, Integer bbb) {
-    shared actual String string => classname(this) + "{aaa=``aaa``, bbb=``bbb``}";
-}
-class Dummy2Default(Integer aaa, Integer bbb = 12345) {
-    shared actual String string => classname(this) + "{aaa=``aaa``, bbb=``bbb``}";
-}
-class DummyUnion(Integer|String aaa, Boolean|Float bbb) {
-    shared actual String string => classname(this) + "{aaa=``aaa``, bbb=``bbb``}";
-}
-class DummyDefaultCtr {
-    Integer aaa;
-    shared new (Integer aaa) {
-        this.aaa = aaa;
-    }
-    shared actual String string => classname(this) + "{aaa=``aaa``}";
-}
-class DummyWithoutDefaultCtr {
-    Integer aaa;
-    shared new ctr1(Integer aaa) {
-        this.aaa = aaa;
-    }
-    shared actual String string => classname(this) + "{aaa=``aaa``}";
-}
-
-//
-//  Objects
-//
-
-class DummyObject(DummyValue dummy) {
-    shared actual String string => classname(this) + "{dummy=``dummy``}";
-}
-class DummyObjectObject(DummyObject obj) {
-    shared actual String string => classname(this) + "{obj=``obj``}";
-}
-class DummyObjectOptional(DummyValue? dummy) {
-    shared actual String string => classname(this) + "{dummy=``tostr(dummy)``}";
-}
-interface DummyInterface {}
-
-//
-//  Arrays
-//
-
-class DummyArraySequential<T>(T[] items) {
-    shared actual String string => classname(this) + "{items=``items``}";
-}
-class DummyArraySequence<T>([T+] items) {
-    shared actual String string => classname(this) + "{items=``items``}";
-}
-class DummyArrayStreamPossiblyEmpty<T>({T*} items) {
-    shared actual String string => classname(this) + "{items=``items``}";
-}
-class DummyArrayStreamNonEmpty<T>({T+} items) {
-    shared actual String string => classname(this) + "{items=``items``}";
-}
-
-// TODO FEATURE load JsonObject as Map<String,Target>(implement as issue/branch for release 0.2)

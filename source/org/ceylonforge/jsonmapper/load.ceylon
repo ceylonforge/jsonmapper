@@ -115,27 +115,6 @@ class JsonLoader<ResultType = Anything>() {
                 return []; // todo !!! test other iterables
             }
             if (is ClassOrInterface<Sequential<>> targetType) {
-                if (is ClassOrInterface<Sequential<Value>> targetType) {
-                    if (is ClassOrInterface<Sequential<String>> targetType) {
-                        return jsonValue.strings.sequence();
-                    }
-                    if (is ClassOrInterface<Sequential<Integer>> targetType) {
-                        return jsonValue.integers.sequence();
-                    }
-                    if (is ClassOrInterface<Sequential<Float>> targetType) {
-                        return jsonValue.floats.sequence();
-                    }
-                    if (is ClassOrInterface<Sequential<Boolean>> targetType) {
-                        return jsonValue.booleans.sequence();
-                    }
-                    if (is ClassOrInterface<Sequential<JsonArray>> targetType) {
-                        return jsonValue.arrays.sequence();
-                    }
-                    if (is ClassOrInterface<Sequential<JsonObject>> targetType) {
-                        return jsonValue.objects.sequence();
-                    }
-                    return jsonValue.sequence(); // We don't support Sequential<Null>
-                }
                 return resolveSequential(jsonValue, targetType);
             }
         }
