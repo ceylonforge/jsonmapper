@@ -114,19 +114,22 @@ class JsonLoader<ResultType = Anything>() {
             if (jsonValue.empty) {
                 return []; // todo !!! test other iterables
             }
-            if (is ClassOrInterface<Sequential<>> targetType) {
-                return resolveSequential(jsonValue, targetType);
+            if (is ClassOrInterface<Iterable<>> targetType) {
+                value iterable = resolveIterable(jsonValue, targetType);
+                return if (targetType is ClassOrInterface<Sequential<>>)
+                            then iterable.sequence()
+                            else iterable;
             }
         }
         throw JsonLoadException("Can not resolve value '``tostr(jsonValue)``' into type '``targetType``'");
     }
 
-    Anything resolveSequential(JsonArray jsonValue, ClassOrInterface<Sequential<>> targetType) {
-        value itemType = getSequentialItemType(targetType);
+    {Anything*} resolveIterable(JsonArray jsonValue, ClassOrInterface<Iterable<>> targetType) {
+        value itemType = getIterableItemType(targetType);
         value streamType = `class JsonArrayIterable`.memberClassApply<JsonLoader<ResultType>>(`JsonLoader<ResultType>`, itemType);
         assert (exists streamConstructor = streamType.defaultConstructor);
         assert (is Iterable<> stream = streamConstructor.bind(this).apply(jsonValue, itemType));
-        return stream.sequence();
+        return stream;
     }
 
     class JsonArrayIterable<Element>(JsonArray jsonValue, Type<Element> itemType) satisfies Iterable<Element> {
@@ -144,7 +147,7 @@ class JsonLoader<ResultType = Anything>() {
         };
     }
 
-    Type<> getSequentialItemType(ClassOrInterface<Sequential<>> targetType) {
+    Type<> getIterableItemType(ClassOrInterface<Iterable<>> targetType) {
         if (exists itemType = targetType.typeArgumentList.first) {
             return itemType;
         }

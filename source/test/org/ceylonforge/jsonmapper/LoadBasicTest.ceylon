@@ -25,11 +25,6 @@ shared void runLoadBasicTests() {
     createTestRunner([`class LoadBasicTest`], [DefaultLoggingListener()]).run();
 }
 
-shared void runOneTest() {
-    createTestRunner([`function LoadBasicTest.testNestedArray_Sequential_Objects`], [DefaultLoggingListener()]).run();
-//    createTestRunner([`function LoadBasicTest.testNestedArray_Sequential_JsonValues`], [DefaultLoggingListener()]).run();
-}
-
 class LoadBasicTest() {
 
     test
@@ -201,59 +196,5 @@ class LoadBasicTest() {
 
         checkLoadFailed(`DummyGeneric<DummyObject & DummyInterface>`, """{"foo":{"dummy":{"val":123}}}""", "Intersection type paremeter is not supported");
     }
-
-    test
-    shared void testNestedArray_Sequential_JsonValues() {
-        checkLoad(`DummyArraySequential<Integer>`, """{"items":[11,22,33,44,55]}""",
-            "DummyArraySequential{items=[11, 22, 33, 44, 55]}");
-        checkLoad(`DummyArraySequential<Float>`, """{"items":[1.1,2.2,3.3,4.4,5.5]}""",
-            "DummyArraySequential{items=[1.1, 2.2, 3.3, 4.4, 5.5]}");
-        checkLoad(`DummyArraySequential<String>`, """{"items":["one", "two", "three"]}""",
-            """DummyArraySequential{items=[one, two, three]}""");
-        checkLoad(`DummyArraySequential<Boolean>`, """{"items":[true, true, false]}""",
-            """DummyArraySequential{items=[true, true, false]}""");
-
-        checkLoad(`DummyArraySequential<JsonArray>`, """{"items":[[111], [22, 22], [33, 33, 33]]}""",
-            """DummyArraySequential{items=[[111], [22,22], [33,33,33]]}""");
-        checkLoad(`DummyArraySequential<JsonObject>`, """{"items":[{"foo":123}, {"bar":456}]}""",
-            """DummyArraySequential{items=[{"foo":123}, {"bar":456}]}""");
-
-        checkLoad(`DummyArraySequential<Value>`, """{"items":[111, 22.33, "DUMMY-VALUE", true, [456], {"foo":789}, null]}""",
-            """DummyArraySequential{items=[111, 22.33, DUMMY-VALUE, true, [456], {"foo":789}, <null>]}""", "array of ceylon.json::Value");
-
-        checkLoad(`DummyArraySequential<Integer>`, """{"items":[]}""",
-            "DummyArraySequential{items=[]}", "empty array");
-        checkLoad(`DummyArraySequential<Integer?>`, """{"items":[123, null]}""",
-            "DummyArraySequential{items=[123, <null>]}", "array of optional values");
-        checkLoad(`DummyArraySequential<Integer|String>`, """{"items":[123, "DUMMY"]}""",
-            "DummyArraySequential{items=[123, DUMMY]}", "array of union");
-
-        checkLoadFailed(`DummyArraySequential<String>`, """{"items":["DUMMY", 123]}""", "mixed array");
-    }
-
-    test
-    shared void testNestedArray_Sequential_Objects() {
-        checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[]}""",
-            "DummyArraySequential{items=[]}", "empty array");
-
-        checkLoad(`DummyArraySequential<DummyInteger>`, """{"items":[{"int":111}, {"int":222}]}""",
-            "DummyArraySequential{items=[DummyInteger{int=111}, DummyInteger{int=222}]}");
-
-        checkLoad(`DummyArraySequential<DummyInteger?>`, """{"items":[{"int":111}, null, {"int":222}]}""",
-            "DummyArraySequential{items=[DummyInteger{int=111}, <null>, DummyInteger{int=222}]}", "optional values");
-
-        checkLoad(`DummyArraySequential<DummyArraySequential<DummyInteger>>`, """{"items":[{"items":[{"int":111}]}, {"items":[{"int":222}]}]}""",
-            "DummyArraySequential{items=[DummyArraySequential{items=[DummyInteger{int=111}]}, DummyArraySequential{items=[DummyInteger{int=222}]}]}", "nested nested sequential");
-
-        checkLoadFailed(`DummyArraySequential<DummyInteger|DummyString>`, """{"items":[{"int":123123}, {"str":"DUMMY"}]}""", "sequential of general union is not supported for now"); // TODO DEFFERED consider support union by signature (or with some custom provided resolver)
-    }
-
-    // todo !!! test other seq and streams, ceylon Array and others collections (or may be collection schedule to extended)
-    // todo !!! test tuples (or may delay it to next releases)
-    // todo !!! support maps
-
-    //
-    //  Implementation details
-    //
 
 }

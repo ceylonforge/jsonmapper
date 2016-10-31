@@ -6,12 +6,21 @@ import ceylon.language.meta.model {
 }
 import ceylon.test {
     assertEquals,
-    fail
+    fail,
+    createTestRunner
 }
 import org.ceylonforge.jsonmapper {
     JsonLoadException,
     buildJsonLoad
 }
+import ceylon.test.engine {
+    DefaultLoggingListener
+}
+
+shared void runAllTests() {
+    createTestRunner([`module test.org.ceylonforge.jsonmapper`], [DefaultLoggingListener()]).run();
+}
+
 String tostr(Anything val) => val?.string else "<null>";
 String classname(Anything obj) {
     return type(obj).declaration.name;
