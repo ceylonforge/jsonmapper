@@ -90,18 +90,16 @@ interface DummyInterface {}
 //  Arrays
 //
 
-class DummyArrayReceiver<out Item, Items>(Items items)
-                given Items satisfies Iterable<Item> {}
-class DummyArraySequential<T>(T[] items) extends DummyArrayReceiver<T, T[]>(items) {
+class DummyArraySequential<T>(T[] items) {
     shared actual String string => classname(this) + "{items=``items``}";
 }
-class DummyArraySequence<T>([T+] items) extends DummyArrayReceiver<T, [T+]>(items) {
+class DummyArraySequence<T>([T+] items) {
     shared actual String string => classname(this) + "{items=``items``}";
 }
-class DummyArrayStreamPossiblyEmpty<T>({T*} items) extends DummyArrayReceiver<T, {T*}>(items) {
+class DummyArrayStreamPossiblyEmpty<T>({T*} items) {
     shared actual String string => classname(this) + "{items=``items``}";
 }
-class DummyArrayStreamNonEmpty<T>({T+} items) extends DummyArrayReceiver<T, {T+}>(items) {
+class DummyArrayStreamNonEmpty<T>({T+} items) {
     shared actual String string => classname(this) + "{items=``items``}";
 }
 

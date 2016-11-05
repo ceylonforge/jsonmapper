@@ -74,7 +74,11 @@ class JsonLoader<ResultType = Anything>() {
                 try {
                     return ctr.namedApply(params);
                 } catch (e) {
-                    throw JsonLoadException("Constructor '``ctr````ctr.parameterTypes``' failed with parameters '``params``' (type ``type(params)``)", e);
+                    value b = StringBuilder().append("Constructor\n\t\t``ctr````ctr.parameterTypes``\nfailed with parameters:");
+                    for (entry in params) {
+                        b.append("\n\t\t``entry`` (``type(entry.item)``)");
+                    }
+                    throw JsonLoadException(b.string, e);
                 }
             } else {
                 throw JsonLoadException("Class ``cls`` has no default constructor");
@@ -112,10 +116,11 @@ class JsonLoader<ResultType = Anything>() {
         }
         if (is JsonArray jsonValue) {
             if (jsonValue.empty) {
-                return []; // todo !!! test other iterables
+                return [];
             }
             if (is ClassOrInterface<Iterable<>> targetType) {
                 value iterable = resolveIterable(jsonValue, targetType);
+
                 return if (targetType is ClassOrInterface<Sequential<>>)
                             then iterable.sequence()
                             else iterable;
@@ -132,7 +137,7 @@ class JsonLoader<ResultType = Anything>() {
         return stream;
     }
 
-    class JsonArrayIterable<Element>(JsonArray jsonValue, Type<Element> itemType) satisfies Iterable<Element> {
+    class JsonArrayIterable<Element>(JsonArray jsonValue, Type<Element> itemType) satisfies Iterable<Element, Nothing> {
         shared actual Iterator<Element> iterator() => object satisfies Iterator<Element> {
             Iterator<Value> jsonIterator = jsonValue.iterator();
             shared actual Element|Finished next() {
