@@ -103,4 +103,12 @@ class DummyArrayStreamNonEmpty<T>({T+} items) {
     shared actual String string => classname(this) + "{items=``items``}";
 }
 
+//
+//  Maps
+//
+
+class DummyObjectCorrespondence<Key, Item>(Correspondence<Key, Item> map) {
+    shared actual String string => classname(this) + "{map=``map``}";
+}
+
 // TODO FEATURE load JsonObject as Map<String,Target>(implement as issue/branch for release 0.2)
