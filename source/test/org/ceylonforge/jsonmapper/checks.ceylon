@@ -9,21 +9,42 @@ import ceylon.test {
     fail,
     createTestRunner
 }
+import ceylon.test.engine {
+    DefaultLoggingListener
+}
+
 import org.ceylonforge.jsonmapper {
     JsonLoadException,
     buildJsonLoad
-}
-import ceylon.test.engine {
-    DefaultLoggingListener
 }
 
 shared void runAllTests() {
     createTestRunner([`module test.org.ceylonforge.jsonmapper`], [DefaultLoggingListener()]).run();
 }
 
+// todo !!! remove ?
+//String tostr(Anything val) {
+//    if (exists val) {
+//        if (is Correspondence<String> val) {
+//            value b = StringBuilder().append("{");
+//            for (key in val.keys) {
+//
+//            }
+//            return b.append("}").string;
+//        }
+//        return val.string;
+//    }
+//    return "<null>";
+//}
 String tostr(Anything val) => val?.string else "<null>";
 String classname(Anything obj) {
     return type(obj).declaration.name;
+}
+
+abstract class Absent() of absent {}
+object absent extends Absent() {
+    shared actual String string => "<absent>";
+
 }
 
 void checkLoad(Class<> cls, String json, String expected, String? msg = null) {

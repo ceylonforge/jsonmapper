@@ -1,3 +1,6 @@
+import ceylon.collection {
+    HashMap
+}
 import ceylon.json {
     JsonObject,
     JsonArray,
@@ -6,7 +9,8 @@ import ceylon.json {
 }
 import ceylon.language.meta {
     classDeclaration,
-    type
+    type,
+    typeLiteral
 }
 import ceylon.language.meta.declaration {
     FunctionOrValueDeclaration
@@ -101,6 +105,8 @@ class JsonLoader<ResultType = Anything>() {
         return target;
     }
 
+    // TODO DEFFERED replace all ClassOrInterface<...> with Type<...> ?
+
     // todo ??? remove Target from this method as it An
     Anything resolveValue<Target>(Value jsonValue, Type<Target> targetType) {
         if (targetType.typeOf(jsonValue)) {
@@ -112,6 +118,9 @@ class JsonLoader<ResultType = Anything>() {
             }
             if (is UnionType<Target> targetType, exists targetClass = getClassIfOptional(targetType)) {
                 return loadJsonObject(targetClass, jsonValue);
+            }
+            if (is ClassOrInterface<Correspondence<String>> targetType) {
+                return resolveCorrespondence(jsonValue, targetType);
             }
         }
         if (is JsonArray jsonValue) {
@@ -138,6 +147,9 @@ class JsonLoader<ResultType = Anything>() {
     }
 
     class JsonArrayIterable<Element>(JsonArray jsonValue, Type<Element> itemType) satisfies Iterable<Element, Nothing> {
+
+        // todo !!! itemType may be refactore out with Type<Element> itemType = typeLiteral<Element>();
+
         shared actual Iterator<Element> iterator() => object satisfies Iterator<Element> {
             Iterator<Value> jsonIterator = jsonValue.iterator();
             shared actual Element|Finished next() {
@@ -150,6 +162,41 @@ class JsonLoader<ResultType = Anything>() {
                 }
             }
         };
+    }
+
+    // todo !!! refactore common with iterable
+    Correspondence<String> resolveCorrespondence(JsonObject jsonObject, ClassOrInterface<Correspondence<String>> targetType) {
+        value itemType = targetType.typeArgumentList[1];
+        "Correspondence item type does not exists"
+        assert (exists itemType);
+        value corrType = `class JsonObjectCorrespondence`.memberClassApply<JsonLoader<ResultType>>(`JsonLoader<ResultType>`, itemType);
+        assert (exists corrConstructor = corrType.defaultConstructor);
+        assert (is Correspondence<String> corr = corrConstructor.bind(this).apply(jsonObject));
+        return corr;
+    }
+
+    class JsonObjectCorrespondence<Item>(JsonObject jsonObject)
+            satisfies Correspondence<String, Item>
+    {
+
+        // todo !!!
+
+        value map = HashMap<String, Item|Absent>();
+
+        shared actual Boolean defines(String key) => jsonObject.defines(key);
+
+        shared actual Item? get(String key) {
+            // todo !!! implement and test cache
+//            value maybeItem = map[key];
+
+            Type<Item> itemType = typeLiteral<Item>();
+
+            if (defines(key)) {
+                return resolveValueTyped<Item>(jsonObject[key], itemType);
+            }
+            return null;
+        }
+
     }
 
     Type<> getIterableItemType(ClassOrInterface<Iterable<>> targetType) {
@@ -188,6 +235,10 @@ class JsonLoader<ResultType = Anything>() {
 
 Boolean isOptional(Type<> ptype) => ptype.supertypeOf(`Null`);
 String tostr(Anything val) => val?.string else "<null>";
+
+abstract class Absent() of absent {}
+object absent extends Absent() {}
+
 
 
 

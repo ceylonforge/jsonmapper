@@ -107,7 +107,7 @@ class DummyArrayStreamNonEmpty<T>({T+} items) {
 //  Maps
 //
 
-class DummyObjectCorrespondence<Key, Item>(Correspondence<Key, Item> map) {
+class DummyObjectCorrespondence<out Item>(shared Correspondence<String, Item> map) {
     shared actual String string => classname(this) + "{map=``map``}";
 }
 

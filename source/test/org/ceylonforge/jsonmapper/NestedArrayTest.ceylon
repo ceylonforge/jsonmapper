@@ -23,10 +23,6 @@ shared void runNestedArrayTests() {
     createTestRunner([`class NestedArrayTest`], [DefaultLoggingListener()]).run();
 }
 
-shared void runOneTest() {
-    createTestRunner([`function NestedArrayTest.testEmpty`], [DefaultLoggingListener()]).run();
-}
-
 shared {[ClassDeclaration, [String, String]]*} testArrayParams => {
     [`class DummyArraySequential`, ["[", "]"]],
     [`class DummyArraySequence`, ["[", "]"]],
@@ -46,7 +42,11 @@ class NestedArrayTest() {
     // todo !!! test tuples (or may delay it to next releases)
     // todo !!! support maps
 
+    // todo !!! support Collection here
+
     // todo !!! comment here about this use case here: https://ceylon-lang.org/blog/2015/06/03/generic-function-refs/
+
+    // todo DEFFERED maybe support for top level different classes/interfaces collections (iterables and maps)
 
     test
     parameters(`value testArrayParams`)
